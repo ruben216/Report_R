@@ -1,0 +1,178 @@
+---
+title: "Report - Example"
+output: 
+  html_document:
+    toc: true
+    theme: cerulean
+show_code: no
+params:
+  show_code: no
+  path: C:/path/to/csv/files/
+  data: 13/10/2021
+  env: DEV
+  total_disp_imp_sgiot: 0
+  duplicated_msisdn: 0
+  duplicated_iccid: 0
+---
+
+```{r setup, include=FALSE}
+# Para criar novo chunk CTRL+ALT+I
+knitr::opts_chunk$set(
+  echo = as.logical(params$show_code),
+  message = FALSE,
+  warning = FALSE
+  
+)
+```
+
+
+
+
+
+```{r load-packages, include=FALSE}
+library(dplyr)
+library(magrittr)
+library(knitr)
+library(DT)
+library(tinytex)
+library(tidyr)
+library(dbplyr)
+library(plotly)
+library(scales)
+
+#Read all files. Path is passed as variable.
+Files_List <- list.files(path = params$path)
+
+Files_List
+
+#Variable to keep the results
+Director_Total <- ''
+
+
+
+
+# Iterate over the Files and check if contains any "Movies"
+for (i in Files_List) {
+  
+  if (grepl('Movies', i) & (Files_List[1] == i)) {
+    director_for <-
+      read.csv(
+        file = gsub(" ","",paste(params$path, i)),
+        header = TRUE,
+        sep = ';' ,
+        colClasses = c(
+          'Name of the Director' = 'character',
+          'Year' = 'character'
+        )
+      )
+    
+#Accounts_Total recebe o conteúdo do primeiro arquivo
+    Director_Total <- director_for
+    
+    
+  }
+  
+  else if (grepl('Movies', i)) {
+    director_for <-
+      read.csv(
+        file = gsub(" ","",paste(params$path, i, sep = "")),
+        header = TRUE,
+        sep = ';' ,
+        colClasses = c(
+          'Name of the Director' = 'character',
+          'Year' = 'character'
+        )
+      )
+    
+    Director_Total <- rbind(Director_Total, account_for)
+  }
+}
+
+
+
+#Como filtrar ACCOUNTS na hora de executar um subset
+#
+
+Director_Summary <-
+  subset(
+    accounts_total,
+    select = c(
+      AccountOperatorID,
+      AccountTaxID,
+      Account.Name,
+      Account.ID,
+      Service.Profile
+    )
+  )
+
+colnames(Resumo_Accounts) <-
+  c("CustomerId (enterpriseId)",
+    "CNPJ",
+    "Razão Social",
+    "BAN (BusinessUnit)",
+    "Service Profile")
+
+
+
+```
+<br>
+<br>
+<br>
+
+
+
+### Description
+
+Database used: https://www.kaggle.com/harshitshankhdhar/imdb-dataset-of-top-1000-movies-and-tv-shows
+
+---
+
+
+Resumo de clientes:
+
+<br>
+
+
+```{r}
+
+
+Total_CNPJ <- Resumo_Accounts %>% group_by(CNPJ) %>% 
+  filter(!(CNPJ =="")) %>% 
+  summarise(Unique_Elements = n_distinct(CNPJ)) %>% 
+  count()
+
+row.names(Total_CNPJ) <- c("CNPJ")
+
+Total_BAN <-  Resumo_Accounts %>% group_by(`BAN (BusinessUnit)`) %>% 
+   filter(!(`BAN (BusinessUnit)`=="")) %>% 
+  summarise(Unique_Elements = n_distinct(`BAN (BusinessUnit)`)) %>% 
+  count()
+
+row.names(Total_BAN) <- c("BAN")
+
+Total_CustomerID <-  Resumo_Accounts %>% group_by(`CustomerId (enterpriseId)`) %>% 
+  filter(!(CNPJ =="")) %>% 
+  summarise(Unique_Elements = n_distinct(CNPJ)) %>% 
+  count()
+
+row.names(Total_CustomerID) <- c("CustomerID")
+
+Resumo_Clientes <- rbind(Total_CNPJ,Total_CustomerID,Total_BAN)
+
+colnames(Resumo_Clientes) <- c("")
+
+
+knitr::kable(Resumo_Clientes)
+
+
+```
+
+<br>
+<br>
+
+```{r}
+Resumo_Accounts <- Resumo_Accounts %>%  filter(!(CNPJ ==""))
+
+datatable(Resumo_Accounts) 
+
+```
